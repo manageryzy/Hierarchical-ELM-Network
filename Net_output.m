@@ -11,7 +11,6 @@ function [OutImg, OutImgIdx] = Net_output(InImg, InImgIdx, PatchSize, NumFilters
 % OutImgIdx        Image index for OutImg (column vector)
 
 
-addpath('./Utils')
 
 ImgZ = length(InImg);
 mag = (PatchSize-1)/2;
@@ -24,6 +23,7 @@ for i = 1:ImgZ
     im = im2col_general(double(real(img)),[PatchSize PatchSize]); % collect all the patches of the ith image in a matrix
     %     im = bsxfun(@minus, im, mean(im)); % patch-mean removal
     % normalize for contrast
+    im = gpuArray(im);
     patchestmp = im';
     patchestmp = bsxfun(@rdivide, bsxfun(@minus, patchestmp, mean(patchestmp,2)), sqrt(var(patchestmp,[],2)+10));
     if (Whitten == 1)
@@ -41,6 +41,8 @@ for i = 1:ImgZ
         if SigSqrtNorm == 1
             OutImg{cnt} = sign(OutImg{cnt}) .* sqrt(abs(OutImg{cnt}));
         end
+        
+        OutImg{cnt} = gather(OutImg{cnt});
     end
     InImg{i} = [];
     %            fprintf(1,'Layered Max Val %f Min Val %f\n',max(max(OutImg{:})),min(min(OutImg(:))));

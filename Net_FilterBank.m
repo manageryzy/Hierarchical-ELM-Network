@@ -1,4 +1,4 @@
-function [V, M, P] = Net_FilterBank(InImg, PatchSize, NumFilters, Whitten, Sigparain, SigC)
+function [V, M, P] = Net_FilterBank(InImg, PatchSize, NumFilters, Whitten, Sigparain, SigC, MaxNumIter,LRate)
 % =======INPUT=============
 % InImg            Input images (cell structure)
 % InImgIdx         Image index for InImg (column vector)
@@ -10,7 +10,6 @@ function [V, M, P] = Net_FilterBank(InImg, PatchSize, NumFilters, Whitten, Sigpa
 % OutImg           filter output (cell structure)
 % OutImgIdx        Image index for OutImg (column vector)
 
-addpath('./Utils')
 % to efficiently cope with the large training samples, we randomly subsample 100000 training subset to learn Net filter banks
 ImgZ = length(InImg);
 MaxSamples = 10000;
@@ -75,5 +74,5 @@ elseif Whitten == 1
     clear ind V D C;
     Patches = Patches * P;
 end
-V = ELM_AE(Patches', NumFilters, 10^SigC, Sigparain);  %%% Patches 10000 * m
+V = ELM_AE(Patches', NumFilters, 10^SigC, Sigparain,MaxNumIter,LRate);  %%% Patches 10000 * m
 end

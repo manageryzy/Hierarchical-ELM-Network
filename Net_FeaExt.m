@@ -20,7 +20,6 @@ function [f, BlkIdx] = Net_FeaExt(InImg,V,M,P,Net)
 % f         Net features (each column corresponds to feature of each image)
 % BlkIdx    index of local block from which the histogram is compuated
 
-addpath('./Utils')
 
 if length(Net.NumFilters)~= Net.NumStages;
     display('Length(Net.NumFilters)~=Net.NumStages')

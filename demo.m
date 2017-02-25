@@ -1,14 +1,14 @@
 clear all; close all; clc; 
 addpath('./Utils');
-addpath('./Liblinear');
+addpath('./Liblinear/matlab');
 addpath('./common');
-TrnSize = 12000; 
-%TrnSize = 60000; 
+% TrnSize = 12000; 
+TrnSize = 10000; 
 ImgSize = 28; 
 ImgFormat = 'gray'; %'color' or 'gray'
 
 %% Loading data from MNIST Basic (10000 training, 2000 validation, 50000 testing) 
-load('F:\Data\MNISTdata\mnist_basic');
+% load('F:\Data\MNISTdata\mnist_basic');
 % load('F:\Data\MNISTdata\mnist_train'); 
 % load('F:\Data\MNISTdata\mnist_test'); 
 
@@ -17,6 +17,9 @@ load('F:\Data\MNISTdata\mnist_basic');
 
 % mnist_train = load('F:\Data\Data Set\rectangles\rectangles_train.amat');
 % mnist_test = load('F:\Data\Data Set\rectangles\rectangles_test.amat');
+
+mnist_train = loadMNIST_train('train-labels.idx1-ubyte', 'train-images.idx3-ubyte');
+mnist_test = loadMNIST_test('t10k-labels.idx1-ubyte', 't10k-images.idx3-ubyte');
 
 %load('./MNISTdata/mnist_train');
 %mnist_train = [train_X train_labels];
@@ -29,14 +32,14 @@ Randnidx = randperm(size(mnist_train,1));
 mnist_train = mnist_train(Randnidx,:); 
 % =======================================
 
-TrnData = mnist_train(1:TrnSize,1:end-1)';  % partition the data into training set and validation set
-TrnLabels = mnist_train(1:TrnSize,end);
-ValData = mnist_train(TrnSize+1:end,1:end-1)';
-ValLabels = mnist_train(TrnSize+1:end,end);
+TrnData = mnist_train(1:TrnSize,2:end)';  % partition the data into training set and validation set
+TrnLabels = mnist_train(1:TrnSize,1);
+ValData = mnist_train(TrnSize+1:end,2:end)';
+ValLabels = mnist_train(TrnSize+1:end,1);
 clear mnist_train;
 
-TestData = mnist_test(:,1:end-1)';
-TestLabels = mnist_test(:,end);
+TestData = mnist_test(:,2:end)';
+TestLabels = mnist_test(:,1);
 clear mnist_test;
 
 
@@ -50,12 +53,15 @@ clear mnist_test;
 
 nTestImg = length(TestLabels);
 
+rng('default');
+rng(1);
+
 %% Net parameters (they should be funed based on validation set; i.e., ValData & ValLabel)
 % We use the parameters in our IEEE TPAMI submission
 Net.NumStages = 2;
-Net.PatchSize = 7;
+Net.PatchSize = 15;
 Net.NumFilters = [8 8];  %[8 8]
-Net.HistBlockSize = [7 7]; % if Net.HistBlockSize < 1, stands for block size is the ratio of the image size,[14 14]
+Net.HistBlockSize = [14 14]; % if Net.HistBlockSize < 1, stands for block size is the ratio of the image size,[14 14]
 Net.BlkOverLapRatio = 0.5;
 Net.Poolingsize = 2;
 Net.PoolingStride = 2;    % if stride == poolingsize, then no pad
@@ -68,6 +74,9 @@ Net.ResolutionFlag = 3; % 0 stands for standard net type; 1 stands for Laplacian
 %%% 3 stands for concatinates the first layer output to the last to classify.
 Net.ResolutionNum = 2; % stands for how many scale used
 Net.WPCA = 0; % stands for the dimensions that use wpca recuded, 0 stands for no wpca
+Net.SigPara = [1 1 1;1 1 1];
+Net.MaxNumIter = 1000;
+Net.LRate = 0.1;
 
 if Net.ResolutionFlag == 0
     Net.ResolutionNum = 0;
@@ -95,10 +104,13 @@ if Net.WPCA ~= 0
     end
     ftrain = ftrain_DR;
     clear ftrain_DR;
+else
+    DR_WPCA = 0;
 end
 Net_TrnTime = toc;
 clear TrnData_ImgCell; 
 
+%% SVM
 fprintf('\n ====== Training Linear SVM Classifier ======= \n')
 
 % standardize data
@@ -123,7 +135,7 @@ if Net.NormClassifier == 1
 end
 
 tic;
-models = train(TrnLabels, ftrain, '-s 1 -B 1 -q'); % we use linear SVM classifier (C = 1), calling libsvm library
+models = train(TrnLabels, ftrain, '-s 1 -B 1'); % we use linear SVM classifier (C = 1), calling libsvm library
 LinearSVM_TrnTime = toc;
 clear ftrain; 
 
@@ -134,7 +146,7 @@ clear TestData;
 
 fprintf('\n ====== Net Testing ======= \n')
 
-nCorrRecog = 0;
+nCorrRecog = zeros(nTestImg,1);
 RecHistory = zeros(nTestImg,1);
 
 tic; 
@@ -146,7 +158,6 @@ for idx = 1:1:nTestImg
             ftest_DR = DR_WPCA{i,1}' * ftest((i-1)*block_dim+1:i*block_dim,:);
         end
         ftest = ftest_DR;
-        clear ftest_DR;
     end
     ftest = ftest';
     if Net.NormClassifier == 1
@@ -155,21 +166,15 @@ for idx = 1:1:nTestImg
     [xLabel_est, accuracy, decision_values] = predict(TestLabels(idx),...
         sparse(ftest), models, '-q'); % label predictoin by libsvm
    
+    RecHistory(idx) = xLabel_est;
     if xLabel_est == TestLabels(idx)
-        RecHistory(idx) = 1;
-        nCorrRecog = nCorrRecog + 1;
+        nCorrRecog(idx) = 1;
     end
-    
-    if 0==mod(idx,nTestImg/10); 
-        fprintf('Accuracy up to %d tests is %.2f%%; taking %.2f secs per testing sample on average. \n',...
-            [idx 100*nCorrRecog/idx toc/idx]); 
-    end 
-    
-    TestData_ImgCell{idx} = [];
+   
     
 end
 Averaged_TimeperTest = toc/nTestImg;
-Accuracy = nCorrRecog/nTestImg; 
+Accuracy = sum(nCorrRecog)/nTestImg; 
 ErRate = 1 - Accuracy;
 
 %% Results display

@@ -21,8 +21,6 @@ function [f, BlkIdx] = HashingHist(Net,ImgIdx,OutImg)
 % f       Net features (each column corresponds to feature of each image)
 % BlkIdx  index of local block from which the histogram is compuated
 
-addpath('./Utils')
-
 NumImg = max(ImgIdx);
 f = cell(NumImg,1);
 map_weights = 2.^((Net.NumFilters(end)-1):-1:0); % weights for binary to decimal conversion

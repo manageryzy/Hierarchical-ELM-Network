@@ -21,7 +21,6 @@ function [f, V, M, P, BlkIdx] = Net_train(InImg,Net,IdtExt)
 % V         learned Net filter banks (cell)
 % BlkIdx    index of local block from which the histogram is compuated
 
-addpath('./Utils')
 
 if length(Net.NumFilters)~= Net.NumStages;
     display('Length(Net.NumFilters)~=Net.NumStages')
@@ -41,7 +40,7 @@ clear InImg;
 for stage = 1:Net.NumStages
     %         display(['Computing Net filter bank and its outputs at stage ' num2str(stage) '...'])
     
-    [V{stage,1}, M{stage,1}, P{stage,1}] = Net_FilterBank(OutImg, Net.PatchSize, Net.NumFilters(stage), Net.Whitten, Net.SigPara(stage,1), Net.SigPara(stage,3)); % compute Net filter banks
+    [V{stage,1}, M{stage,1}, P{stage,1}] = Net_FilterBank(OutImg, Net.PatchSize, Net.NumFilters(stage), Net.Whitten, Net.SigPara(stage,1), Net.SigPara(stage,3),Net.MaxNumIter,Net.LRate); % compute Net filter banks
     
     if stage ~= Net.NumStages % compute the Net outputs only when it is NOT the last stage
         [OutImg, ImgIdx] = Net_output(OutImg, ImgIdx, ...
