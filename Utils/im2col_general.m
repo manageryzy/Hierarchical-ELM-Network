@@ -9,7 +9,8 @@ z = size(InImg,3);
 im = cell(z,1);
 if NumInput == 2
     for i = 1:z
-        im{i} = im2colstep(double(InImg(:,:,i)),patchsize12)';
+%         im{i} = im2colstep(double(InImg(:,:,i)),patchsize12)';
+        im{i} = im2col_cuda(double(InImg(:,:,i)),patchsize12(1),patchsize12(2))';
     end
 else
     for i = 1:z

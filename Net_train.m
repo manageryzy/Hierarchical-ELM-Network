@@ -38,7 +38,7 @@ ImgIdx = (1:NumImg)';
 clear InImg;
 
 for stage = 1:Net.NumStages
-    %         display(['Computing Net filter bank and its outputs at stage ' num2str(stage) '...'])
+    display(['Computing Net filter bank and its outputs at stage ' num2str(stage) '...'])
     
     [V{stage,1}, M{stage,1}, P{stage,1}] = Net_FilterBank(OutImg, Net.PatchSize, Net.NumFilters(stage), Net.Whitten, Net.SigPara(stage,1), Net.SigPara(stage,3),Net.MaxNumIter,Net.LRate); % compute Net filter banks
     
@@ -52,12 +52,12 @@ for stage = 1:Net.NumStages
 end
 
 if IdtExt == 1 % enable feature extraction
-    %display('Net training feature extraction...')
+    display('Net training feature extraction...')
     
     f = cell(NumImg,1); % compute the Net training feature one by one
     
     for idx = 1:NumImg
-        %             if 0==mod(idx,1000); display(['Extracting Net feasture of the ' num2str(idx) 'th training sample...']); end
+        if 0==mod(idx,1000); display(['Extracting Net feasture of the ' num2str(idx) 'th training sample...']); end
         OutImgIndex = ImgIdx==idx; % select feature maps corresponding to image "idx" (outputs of the-last-but-one Net filter bank)
         
         [OutImg_i, ImgIdx_i] = Net_output(OutImg(OutImgIndex), ones(sum(OutImgIndex),1),...

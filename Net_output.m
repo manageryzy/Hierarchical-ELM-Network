@@ -16,6 +16,9 @@ ImgZ = length(InImg);
 mag = (PatchSize-1)/2;
 OutImg = cell(NumFilters*ImgZ,1);
 cnt = 0;
+V = gpuArray(V);
+M = gpuArray(M);
+P = gpuArray(P);
 for i = 1:ImgZ
     [ImgX, ImgY, NumChls] = size(InImg{i});
     img = zeros(round(ImgX+PatchSize-1),round(ImgY+PatchSize-1), round(NumChls));
@@ -34,15 +37,16 @@ for i = 1:ImgZ
     
     for j = 1:NumFilters
         cnt = cnt + 1;
-        OutImg{cnt} = reshape(tanh(sigscale * V(:,j)'*im),ImgX,ImgY);
+        t = tanh(sigscale * V(:,j)'*im);
 %         OutImg{cnt} = sigscale * reshape(V(:,j)'*im,ImgX,ImgY);  % convolution output
         %OutImg{cnt} = reshape( 1 ./ (1 + exp(-sigscale * V(:,j)'*im)),ImgX,ImgY);  % convolution output
         % Sined square root normalization
         if SigSqrtNorm == 1
-            OutImg{cnt} = sign(OutImg{cnt}) .* sqrt(abs(OutImg{cnt}));
+            OutImg{cnt} = sign(t) .* sqrt(abs(t));
         end
         
-        OutImg{cnt} = gather(OutImg{cnt});
+        OutImg{cnt} = reshape(gather(t),ImgX,ImgY);
+        clear t;
     end
     InImg{i} = [];
     %            fprintf(1,'Layered Max Val %f Min Val %f\n',max(max(OutImg{:})),min(min(OutImg(:))));
