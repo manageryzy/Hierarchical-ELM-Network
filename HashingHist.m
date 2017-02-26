@@ -35,12 +35,11 @@ for Idx = 1:NumImg
         
         T = zeros(size(OutImg(Idx_span(1))));
         if Net.HistBlockSize(1) < 1    %%% Only used for Caltech
-            BlockSize = [floor(Net.HistBlockSize(1) * size(OutImg{Idx_span(Net.NumFilters(end)*(i-1)+1)},1)), ...
-                floor(Net.HistBlockSize(2) * size(OutImg{Idx_span(Net.NumFilters(end)*(i-1)+1)},2))];
+            BlockSize = [floor(Net.HistBlockSize(1) * size(OutImg(:,:,Idx_span(Net.NumFilters(end)*(i-1)+1)),1)), ...
+                floor(Net.HistBlockSize(2) * size(OutImg(:,:,Idx_span(Net.NumFilters(end)*(i-1)+1)),2))];
             for j = 1:Net.NumFilters(end)
-                T = T + map_weights(j)*Heaviside(OutImg{Idx_span(Net.NumFilters(end)*(i-1)+j)});
+                T = T + map_weights(j)*Heaviside(OutImg(:,:,Idx_span(Net.NumFilters(end)*(i-1)+j)));
                 % weighted combination; hashing codes to decimal number conversion 
-                OutImg{Idx_span(Net.NumFilters(end)*(i-1)+j)} = [];
             end
             %%% This is will cause dimension not consistent
             %%% Calculate the minimun numbers of patches
@@ -73,9 +72,8 @@ for Idx = 1:NumImg
             % calculate histogram for each local block in "T"
         else
             for j = 1:Net.NumFilters(end)
-                T = T + map_weights(j)*Heaviside(real(OutImg{Idx_span(Net.NumFilters(end)*(i-1)+j)}));
+                T = T + map_weights(j)*Heaviside(real(OutImg(:,:,Idx_span(Net.NumFilters(end)*(i-1)+j))));
                 % weighted combination; hashing codes to decimal number conversion
-                OutImg{Idx_span(Net.NumFilters(end)*(i-1)+j)} = [];
             end
             Bhist{i} = sparse(histc(im2col_general(double(T),Net.HistBlockSize,...
                 round((1-Net.BlkOverLapRatio)*Net.HistBlockSize)),(0:2^Net.NumFilters(end)-1)'));

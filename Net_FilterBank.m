@@ -11,33 +11,35 @@ function [V, M, P] = Net_FilterBank(InImg, PatchSize, NumFilters, Whitten, Sigpa
 % OutImgIdx        Image index for OutImg (column vector)
 
 % to efficiently cope with the large training samples, we randomly subsample 100000 training subset to learn Net filter banks
-ImgZ = length(InImg);
+ImgZ = size(InImg,3);
 MaxSamples = 10000;
 NumRSamples = min(ImgZ, MaxSamples);
 RandIdx = randperm(ImgZ);
 RandIdx = RandIdx(1:NumRSamples);
 %% Learning Net filters (V)
 % NumChls = size(InImg{1},3);
-im = im2col_general(double(real(InImg{1})),[PatchSize PatchSize]); % collect all the patches of the ith image in a matrix 36 * 529
+im = im2col_cuda(InImg(:,:,1),PatchSize,PatchSize); % collect all the patches of the ith image in a matrix 36 * 529
 PatchperNum = size(im,2); NumPatches = PatchperNum*NumRSamples;
 % Patches = zeros(NumPatches,PatchSize*PatchSize);    %%% Caltech 101 must
 % delete it
 PatchesFlag = 0;
+
+im = im2col_cuda(InImg(:,:,RandIdx),PatchSize,PatchSize); % collect all the patches of the ith image in a matrix 36 * 529
 for i = 1:NumRSamples
-    im = im2col_general(double(real(InImg{RandIdx(i)})),[PatchSize PatchSize]); % collect all the patches of the ith image in a matrix 36 * 529
+    
     % normalize for contrast
 % %     im = bsxfun(@rdivide, bsxfun(@minus, im, mean(im)), sqrt(var(im,[],1)+10));
     %             im = bsxfun(@minus, im, mean(im)); % patch-mean removal
     %     Patches((i-1)*PatchperNum+1:i*PatchperNum,:) = im';
     imrand = randperm(size(im,2));
-    im = im(:,imrand(1:ceil(size(im,2)/50)));
-    Patches(PatchesFlag+1:PatchesFlag+size(im,2),:) = im';
+    img = im(:,imrand(1:ceil(size(im,2))),i);
+    Patches(PatchesFlag+1:PatchesFlag+size(im,2),:) = img';
     PatchesFlag = PatchesFlag+size(im,2);
     if PatchesFlag+size(im,2) > 100000
         NumPatches = PatchesFlag;     %%%%%%%%%%%%% Attentions!!!!
         break;
     end
-    clear im;
+    clear img;
     % patches = bsxfun(@rdivide, bsxfun(@minus, im, mean(im)), sqrt(var(im)));
 end
 if size(Patches,1) > 100000

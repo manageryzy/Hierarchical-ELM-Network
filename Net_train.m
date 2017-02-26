@@ -46,7 +46,7 @@ for stage = 1:Net.NumStages
         [OutImg, ImgIdx] = Net_output(OutImg, ImgIdx, ...
             Net.PatchSize, Net.NumFilters(stage), V{stage}, M{stage}, P{stage}, Net.Whitten, Net.SignSqrtNorm, Net.SigPara(stage,2));
         if IdtExt == 1 % enable feature extraction
-            [g{stage,1}, BlkIdx] = HashingHist(Net,ImgIdx,OutImg);
+             [g{stage,1}, BlkIdx] = HashingHist(Net,ImgIdx,OutImg);
         end
     end
 end
@@ -60,14 +60,14 @@ if IdtExt == 1 % enable feature extraction
         if 0==mod(idx,1000); display(['Extracting Net feasture of the ' num2str(idx) 'th training sample...']); end
         OutImgIndex = ImgIdx==idx; % select feature maps corresponding to image "idx" (outputs of the-last-but-one Net filter bank)
         
-        [OutImg_i, ImgIdx_i] = Net_output(OutImg(OutImgIndex), ones(sum(OutImgIndex),1),...
+        [OutImg_i, ImgIdx_i] = Net_output(OutImg(:,:,OutImgIndex), ones(sum(OutImgIndex),1),...
             Net.PatchSize, Net.NumFilters(end), V{end}, M{end}, P{end}, Net.Whitten, Net.SignSqrtNorm, Net.SigPara(Net.NumStages,2));  % compute the last Net outputs of image "idx"
         
         [f{idx}, BlkIdx] = HashingHist(Net,ImgIdx_i,OutImg_i); % compute the feature of image "idx"
         if Net.NumStages ~= 1
             f{idx} = [f{idx} ; g{1,1}(:,idx)];
         end
-        OutImg(OutImgIndex) = cell(sum(OutImgIndex),1);
+%         OutImg(OutImgIndex) = cell(sum(OutImgIndex),1);
     end
     f = [f{:}];
     

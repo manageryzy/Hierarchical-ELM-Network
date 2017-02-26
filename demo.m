@@ -88,10 +88,10 @@ Net
 %% Net Training with 10000 samples
 
 fprintf('\n ====== Net Training ======= \n')
-TrnData_ImgCell = mat2imgcell(TrnData,ImgSize,ImgSize,ImgFormat); % convert columns in TrnData to cells 
+TrnData_ImgArray = mat2imgarray(TrnData,ImgSize,ImgSize,ImgFormat); % convert columns in TrnData to cells 
 clear TrnData; 
 tic;
-[ftrain, V, M, P, BlkIdx] = Net_train(TrnData_ImgCell,Net,1); % BlkIdx serves the purpose of learning block-wise DR projection matrix; e.g., WPCA
+[ftrain, V, M, P, BlkIdx] = Net_train(TrnData_ImgArray,Net,1); % BlkIdx serves the purpose of learning block-wise DR projection matrix; e.g., WPCA
 if Net.WPCA ~= 0
     block_dim = 2 ^ Net.NumFilters(2);
     DR_WPCA = cell(size(ftrain,1)/block_dim,1);
@@ -141,7 +141,7 @@ clear ftrain;
 
 %% Net Feature Extraction and Testing 
 
-TestData_ImgCell = mat2imgcell(TestData,ImgSize,ImgSize,ImgFormat); % convert columns in TestData to cells 
+TestData_ImgArray = mat2imgarray(TestData,ImgSize,ImgSize,ImgFormat); % convert columns in TestData to cells 
 clear TestData; 
 
 fprintf('\n ====== Net Testing ======= \n')
@@ -150,7 +150,7 @@ nCorrRecog = zeros(nTestImg,1);
 RecHistory = zeros(nTestImg,1);
 
 tic; 
-ftest = Net_FeaExt(TestData_ImgCell,V,M,P,Net); % extract a test feature using trained Net model 
+ftest = Net_FeaExt(TestData_ImgArray,V,M,P,Net); % extract a test feature using trained Net model 
 for idx = 1:1:nTestImg
     if Net.WPCA ~= 0
         for i = 1 : length(DR_WPCA)
@@ -158,12 +158,12 @@ for idx = 1:1:nTestImg
         end
         ftest{idx} = ftest_DR;
     end
-    ftest{idx} = ftest{idx}';
+    t = ftest(:,idx)';
     if Net.NormClassifier == 1
-        ftest{idx} = bsxfun(@rdivide, bsxfun(@minus, ftest{idx}, trainXC_mean), trainXC_sd);
+        t = bsxfun(@rdivide, bsxfun(@minus, t, trainXC_mean), trainXC_sd);
     end
     [xLabel_est, accuracy, decision_values] = predict(TestLabels(idx),...
-        sparse(ftest{idx}), models, '-q'); % label predictoin by libsvm
+        sparse(t), models, '-q'); % label predictoin by libsvm
    
     RecHistory(idx) = xLabel_est;
     if xLabel_est == TestLabels(idx)

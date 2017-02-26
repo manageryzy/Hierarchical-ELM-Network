@@ -12,43 +12,57 @@ function [OutImg, OutImgIdx] = Net_output(InImg, InImgIdx, PatchSize, NumFilters
 
 
 
-ImgZ = length(InImg);
+ImgZ = size(InImg,3);
 mag = (PatchSize-1)/2;
-OutImg = cell(NumFilters*ImgZ,1);
-cnt = 0;
+OutImg = zeros(size(InImg,1),size(InImg,2),NumFilters*ImgZ);
+cnt = 1;
 V = gpuArray(V);
 M = gpuArray(M);
 P = gpuArray(P);
-for i = 1:ImgZ
-    [ImgX, ImgY, NumChls] = size(InImg{i});
-    img = zeros(round(ImgX+PatchSize-1),round(ImgY+PatchSize-1), round(NumChls));
-    img((mag+1):end-mag,(mag+1):end-mag,:) = InImg{i};
-    im = im2col_general(double(real(img)),[PatchSize PatchSize]); % collect all the patches of the ith image in a matrix
+for i = 1:512:ImgZ
+    s = 512;
+    if ImgZ-i<512
+        s = ImgZ - i;
+    end
+    
+    [ImgX, ImgY, ~] = size(InImg);
+    img = zeros([round(ImgX+PatchSize-1),round(ImgY+PatchSize-1), s+1],'gpuArray');
+    img((mag+1):end-mag,(mag+1):end-mag,:) = InImg(:,:,i:i+s);
+    im = im2col_cuda(img,PatchSize,PatchSize); % collect all the patches of the ith image in a matrix
     %     im = bsxfun(@minus, im, mean(im)); % patch-mean removal
     % normalize for contrast
     im = gpuArray(im);
-    patchestmp = im';
+    patchestmp = permute(im, [2 1 3]);
     patchestmp = bsxfun(@rdivide, bsxfun(@minus, patchestmp, mean(patchestmp,2)), sqrt(var(patchestmp,[],2)+10));
     if (Whitten == 1)
-        patchestmp = bsxfun(@minus, patchestmp, M) * P;
+        t = bsxfun(@minus, patchestmp, M);
+        for j=1:size(t,3)
+            patchestmp(:,:,j) = t(:,:,j) * P;
+        end
+        clear t;
     end
-    im = patchestmp';
+    im = permute(patchestmp, [2 1 3]);
     clear patchestmp;
     
     for j = 1:NumFilters
-        cnt = cnt + 1;
-        t = tanh(sigscale * V(:,j)'*im);
+        
+        tv = sigscale * V(:,j)';
+        for k=1:size(im,3)
+            t(:,:,k) = tanh(tv*im(:,:,k));
+            
+            if SigSqrtNorm == 1
+                t(:,:,k) = sign(t(:,:,k)) .* sqrt(abs(t(:,:,k)));
+            end
+        end
 %         OutImg{cnt} = sigscale * reshape(V(:,j)'*im,ImgX,ImgY);  % convolution output
         %OutImg{cnt} = reshape( 1 ./ (1 + exp(-sigscale * V(:,j)'*im)),ImgX,ImgY);  % convolution output
         % Sined square root normalization
-        if SigSqrtNorm == 1
-            OutImg{cnt} = sign(t) .* sqrt(abs(t));
-        end
-        
-        OutImg{cnt} = reshape(gather(t),ImgX,ImgY);
+
+        OutImg(:,:,cnt:cnt+s) = reshape(gather(t),ImgX,ImgY,s+1);
+        cnt = cnt + s +1;
         clear t;
     end
-    InImg{i} = [];
+    
     %            fprintf(1,'Layered Max Val %f Min Val %f\n',max(max(OutImg{:})),min(min(OutImg(:))));
 end
 OutImgIdx = kron(InImgIdx,ones(NumFilters,1));
