@@ -150,20 +150,21 @@ nCorrRecog = zeros(nTestImg,1);
 RecHistory = zeros(nTestImg,1);
 
 tic; 
-ftest = Net_FeaExt(TestData_ImgCell,V,M,P,Net); % extract a test feature using trained Net model 
 for idx = 1:1:nTestImg
+    
+    ftest = Net_FeaExt(TestData_ImgCell(idx),V,M,P,Net); % extract a test feature using trained Net model 
     if Net.WPCA ~= 0
         for i = 1 : length(DR_WPCA)
-            ftest_DR = DR_WPCA{i,1}' * ftest{idx}((i-1)*block_dim+1:i*block_dim,:);
+            ftest_DR = DR_WPCA{i,1}' * ftest((i-1)*block_dim+1:i*block_dim,:);
         end
-        ftest{idx} = ftest_DR;
+        ftest = ftest_DR;
     end
-    ftest{idx} = ftest{idx}';
+    ftest = ftest';
     if Net.NormClassifier == 1
-        ftest{idx} = bsxfun(@rdivide, bsxfun(@minus, ftest{idx}, trainXC_mean), trainXC_sd);
+        ftest = bsxfun(@rdivide, bsxfun(@minus, ftest, trainXC_mean), trainXC_sd);
     end
     [xLabel_est, accuracy, decision_values] = predict(TestLabels(idx),...
-        sparse(ftest{idx}), models, '-q'); % label predictoin by libsvm
+        sparse(ftest), models, '-q'); % label predictoin by libsvm
    
     RecHistory(idx) = xLabel_est;
     if xLabel_est == TestLabels(idx)
