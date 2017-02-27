@@ -89,7 +89,7 @@ Net
 
 fprintf('\n ====== Net Training ======= \n')
 TrnData_ImgCell = mat2imgcell(TrnData,ImgSize,ImgSize,ImgFormat); % convert columns in TrnData to cells 
-clear TrnData; 
+% clear TrnData; 
 tic;
 [ftrain, V, M, P, BlkIdx] = Net_train(TrnData_ImgCell,Net,1); % BlkIdx serves the purpose of learning block-wise DR projection matrix; e.g., WPCA
 if Net.WPCA ~= 0
@@ -108,7 +108,7 @@ else
     DR_WPCA = 0;
 end
 Net_TrnTime = toc;
-clear TrnData_ImgCell; 
+% clear TrnData_ImgCell; 
 
 %% SVM
 fprintf('\n ====== Training Linear SVM Classifier ======= \n')
@@ -137,12 +137,12 @@ end
 tic;
 models = train(TrnLabels, ftrain, '-s 1 -B 1'); % we use linear SVM classifier (C = 1), calling libsvm library
 LinearSVM_TrnTime = toc;
-clear ftrain; 
+% clear ftrain; 
 
 %% Net Feature Extraction and Testing 
 
 TestData_ImgCell = mat2imgcell(TestData,ImgSize,ImgSize,ImgFormat); % convert columns in TestData to cells 
-clear TestData; 
+% clear TestData; 
 
 fprintf('\n ====== Net Testing ======= \n')
 
@@ -150,29 +150,45 @@ nCorrRecog = zeros(nTestImg,1);
 RecHistory = zeros(nTestImg,1);
 
 tic; 
-for idx = 1:1:nTestImg
-    
-    ftest = Net_FeaExt(TestData_ImgCell(idx),V,M,P,Net); % extract a test feature using trained Net model 
-    if Net.WPCA ~= 0
-        for i = 1 : length(DR_WPCA)
-            ftest_DR = DR_WPCA{i,1}' * ftest((i-1)*block_dim+1:i*block_dim,:);
-        end
-        ftest = ftest_DR;
+ftest = Net_FeaExt(TestData_ImgCell,V,M,P,Net); % extract a test feature using trained Net model 
+if Net.WPCA ~= 0
+    block_dim = 2 ^ Net.NumFilters(2);
+    DR_WPCA = cell(size(ftest,1)/block_dim,1);
+    ftest_DR = zeros(DR_WPCA*Net.WPCA,TrnSize);
+    for i = 1 : length(DR_WPCA)
+        [wcoeff,~,latent,~,explained] = pca(ftest((i-1)*block_dim+1:i*block_dim,:)','VariableWeights','variance');
+        coefforth = diag(std(ingredients)) \ wcoeff;
+        DR_WPCA{i,1} = coefforth(:,1:Net.WPCA);
+        ftest_DR = DR_WPCA{i,1}' * ftest((i-1)*block_dim+1:i*block_dim,:);
     end
-    ftest = ftest';
-    if Net.NormClassifier == 1
-        ftest = bsxfun(@rdivide, bsxfun(@minus, ftest, trainXC_mean), trainXC_sd);
-    end
-    [xLabel_est, accuracy, decision_values] = predict(TestLabels(idx),...
-        sparse(ftest), models, '-q'); % label predictoin by libsvm
-   
-    RecHistory(idx) = xLabel_est;
-    if xLabel_est == TestLabels(idx)
-        nCorrRecog(idx) = 1;
-    end
-   
-    
+    ftest = ftest_DR;
+    clear ftrain_DR;
+else
+    DR_WPCA = 0;
 end
+ftest = ftest';
+if Net.NormClassifier == 1
+    trainXC_mean = mean(ftest);
+    % Incrementally calculate the var
+    ind = ones(500,1); varftest = zeros(1,size(ftest,2));
+    for i = 1 : 1000 : TrnSize
+        if i+1000 >= TrnSize
+            ftest(i:end,:) = ftest(i:end,:) - trainXC_mean(ones(TrnSize-i+1,1),:);
+            varftest = varftest + sum(ftest(i:end,:) .* ftest(i:end,:));
+        else
+            ftest(i:i+1000-1,:) = ftest(i:i+1000-1,:) - trainXC_mean(ind,:);
+            varftest = varftest + sum(ftest(i:i+1000-1,:) .* ftest(i:i+1000-1,:));
+        end
+    end
+    varftest = varftest ./ (TrnSize-1);
+    trainXC_sd = sqrt(varftest+0.01);
+    clear varftrain ind;
+    ftest = bsxfun(@rdivide, ftest, trainXC_sd);
+end
+[xLabel_est, accuracy, decision_values] = predict(TestLabels,...
+        sparse(ftest), models, '-q'); % label predictoin by libsvm
+    
+nCorrRecog = xLabel_est == TestLabels;
 Averaged_TimeperTest = toc/nTestImg;
 Accuracy = sum(nCorrRecog)/nTestImg; 
 ErRate = 1 - Accuracy;
