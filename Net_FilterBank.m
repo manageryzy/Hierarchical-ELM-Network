@@ -32,10 +32,10 @@ for i = 1:NumRSamples
     %             im = bsxfun(@minus, im, mean(im)); % patch-mean removal
     %     Patches((i-1)*PatchperNum+1:i*PatchperNum,:) = im';
     imrand = randperm(size(im,2));
-    img = im(:,imrand(1:ceil(size(im,2))),i);
-    Patches(PatchesFlag+1:PatchesFlag+size(im,2),:) = img';
-    PatchesFlag = PatchesFlag+size(im,2);
-    if PatchesFlag+size(im,2) > 100000
+    img = im(:,imrand(1:ceil(size(im,2)/50)),i);
+    Patches(PatchesFlag+1:PatchesFlag+size(img,2),:) = img';
+    PatchesFlag = PatchesFlag+size(img,2);
+    if PatchesFlag+size(img,2) > 100000
         NumPatches = PatchesFlag;     %%%%%%%%%%%%% Attentions!!!!
         break;
     end
