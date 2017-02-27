@@ -25,6 +25,7 @@ PatchperNum = size(im,2); NumPatches = PatchperNum*NumRSamples;
 PatchesFlag = 0;
 
 im = im2col_cuda(InImg(:,:,RandIdx),PatchSize,PatchSize); % collect all the patches of the ith image in a matrix 36 * 529
+Patches = zeros(ceil(size(im,2)/50)*NumRSamples,size(im,1),'gpuArray');
 for i = 1:NumRSamples
     
     % normalize for contrast
