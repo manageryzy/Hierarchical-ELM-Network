@@ -20,7 +20,7 @@ V = gpuArray(V);
 M = gpuArray(M);
 P = gpuArray(P);
 for i = 1:512:ImgZ
-    s = 512;
+    s = 511;
     if ImgZ-i<512
         s = ImgZ - i;
     end

@@ -17,7 +17,7 @@ kernel.ThreadBlockSize = [1,1,1];
 para = gpuArray(int32([size1 size2 N1 N2 numElements]));
 
 for i=1:4096:len
-    s = 4096;
+    s = 4095;
     if len-i<4096
         s = len - i;
     end
