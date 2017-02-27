@@ -75,7 +75,7 @@ Net.ResolutionFlag = 3; % 0 stands for standard net type; 1 stands for Laplacian
 Net.ResolutionNum = 2; % stands for how many scale used
 Net.WPCA = 0; % stands for the dimensions that use wpca recuded, 0 stands for no wpca
 Net.SigPara = [1 1 1;1 1 1];
-Net.MaxNumIter = 1000;
+Net.MaxNumIter = 0;
 Net.LRate = 0.1;
 
 if Net.ResolutionFlag == 0
