@@ -41,28 +41,30 @@ else
         clear Hsquare;
         clear HsquareL;
         
+        if MaxNumIter>0
         % USA 
         tic;
-        for epoch = 1:(MaxNumIter+1)  
-            
-            tempH = InputWeight * data;
-            H = 2./(1+ exp(-2 * tempH))-1;
-            clear tempH;
-            
-            KLsum = sum(rho * log(rho ./ rhohats) + (1-rho) * log((1-rho) ./ (1-rhohats)));
-            Hsquare =  H * H';
-            HsquareL = diag(max(Hsquare,[],2));
-        
-            Filterstmp=((eye(size(H,1)).*KLsum +HsquareL)/C+Hsquare) \ H * data'; 
-            
-            temp = H' .* (1-H');
-            pinvH = pinv(H);
-            dataPinvH = data * pinvH;
-            Gradient_W = 2 * data * (temp .* ( pinvH * (H * data') * dataPinvH - data' * dataPinvH ));
-            InputWeight = InputWeight - LRate*Gradient_W';
-            
+            for epoch = 1:(MaxNumIter+1)  
+
+                tempH = InputWeight * data;
+                H = 2./(1+ exp(-2 * tempH))-1;
+                clear tempH;
+
+                KLsum = sum(rho * log(rho ./ rhohats) + (1-rho) * log((1-rho) ./ (1-rhohats)));
+                Hsquare =  H * H';
+                HsquareL = diag(max(Hsquare,[],2));
+
+                Filterstmp=((eye(size(H,1)).*KLsum +HsquareL)/C+Hsquare) \ H * data'; 
+
+                temp = H' .* (1-H');
+                pinvH = pinv(H);
+                dataPinvH = data * pinvH;
+                Gradient_W = 2 * data * (temp .* ( pinvH * (H * data') * dataPinvH - data' * dataPinvH ));
+                InputWeight = InputWeight - LRate*Gradient_W';
+
+            end
+            toc
         end
-        toc
     end
 end
 Filters = gather(Filterstmp');
