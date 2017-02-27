@@ -15,6 +15,7 @@ numElements = N1*N2*(size1-N1+1)*(size2-N2+1);
 kernel.ThreadBlockSize = [1,1,1];
 
 para = gpuArray(int32([size1 size2 N1 N2 numElements]));
+result = zeros([ N1*N2 (size1-N1+1)*(size2-N2+1) len],'gpuArray');
 
 for i=1:4096:len
     s = 4095;
@@ -26,7 +27,7 @@ for i=1:4096:len
 
     in1 = gpuArray(real(A(:,:,i:i+s)));
     out = zeros([ N1*N2 (size1-N1+1)*(size2-N2+1) s+1],'gpuArray');
-    result(:,:,i:i+s) = gather(feval(kernel,out,in1,para));
+    result(:,:,i:i+s) = feval(kernel,out,in1,para);
 end
 end
 

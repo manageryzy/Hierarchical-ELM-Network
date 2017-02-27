@@ -58,10 +58,11 @@ for i = 1:512:ImgZ
         %OutImg{cnt} = reshape( 1 ./ (1 + exp(-sigscale * V(:,j)'*im)),ImgX,ImgY);  % convolution output
         % Sined square root normalization
 
-        OutImg(:,:,cnt:cnt+s) = reshape(gather(t),ImgX,ImgY,s+1);
-        cnt = cnt + s +1;
+        OutImg(:,:,cnt:NumFilters:cnt+(s+1)*NumFilters-1) = reshape(gather(t),ImgX,ImgY,s+1);
+        cnt = cnt + 1;
         clear t;
     end
+    cnt = cnt + (s )*NumFilters;
     
     %            fprintf(1,'Layered Max Val %f Min Val %f\n',max(max(OutImg{:})),min(min(OutImg(:))));
 end
