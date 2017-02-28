@@ -47,10 +47,9 @@ for i = 1:512:ImgZ
     for j = 1:NumFilters
         
         tv = sigscale * V(:,j)';
-        for k=1:size(im,3)
-            t(:,:,k) = tanh(tv*im(:,:,k));
-            
-            if SigSqrtNorm == 1
+        t = calct(tv,im);
+        if SigSqrtNorm == 1
+            for k=1:size(im,3)
                 t(:,:,k) = sign(t(:,:,k)) .* sqrt(abs(t(:,:,k)));
             end
         end
