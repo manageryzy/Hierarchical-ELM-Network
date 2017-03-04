@@ -25,7 +25,7 @@ NumImg = max(ImgIdx);
 f = cell(NumImg,1);
 map_weights = 2.^((Net.NumFilters(end)-1):-1:0); % weights for binary to decimal conversion
 
-for Idx = 1:NumImg
+parfor Idx = 1:NumImg
   
     Idx_span = find(ImgIdx == Idx);
     Bhist = cell(length(Idx_span),1);
@@ -75,17 +75,20 @@ for Idx = 1:NumImg
                 T = T + map_weights(j)*Heaviside(real(OutImg(:,:,Idx_span(Net.NumFilters(end)*(i-1)+j))));
                 % weighted combination; hashing codes to decimal number conversion
             end
-            Bhist{i} = sparse(histc(im2col_general(double(T),Net.HistBlockSize,...
-                round((1-Net.BlkOverLapRatio)*Net.HistBlockSize)),(0:2^Net.NumFilters(end)-1)'));
+            im = im2col_general(double(T),Net.HistBlockSize,...
+                round((1-Net.BlkOverLapRatio)*Net.HistBlockSize));
+            Bhist{i} = sparse(histc(im,(0:2^Net.NumFilters(end)-1)'));
             % calculate histogram for each local block in "T"
         end
         Bhist{i} = bsxfun(@times, Bhist{i}, ...
             2^Net.NumFilters(end)./sum(Bhist{i})); % to ensure that sum of each block-wise histogram is equal 
-    end           
-    f{Idx} = vec([Bhist{:}]);
+    end       
+    t = [Bhist{:}];
+    f{Idx} = t(:);
 end
 f = [f{:}];
-BlkIdx = kron(ones(NumImginO,1),kron((1:size(Bhist{1},2))',ones(size(Bhist{1},1),1)));
+% BlkIdx = kron(ones(NumImginO,1),kron((1:size(Bhist{1},2))',ones(size(Bhist{1},1),1)));
+BlkIdx = 1;
 
 %-------------------------------
 function X = Heaviside(X) % binary quantization

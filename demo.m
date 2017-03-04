@@ -3,7 +3,7 @@ addpath('./Utils');
 addpath('./Liblinear/matlab');
 addpath('./common');
 % TrnSize = 12000; 
-TrnSize = 10000; 
+TrnSize = 1000; 
 ImgSize = 28; 
 ImgFormat = 'gray'; %'color' or 'gray'
 
@@ -53,15 +53,15 @@ clear mnist_test;
 
 nTestImg = length(TestLabels);
 
-rng('default');
-rng(1);
-
+for idx = 0:0
 %% Net parameters (they should be funed based on validation set; i.e., ValData & ValLabel)
 % We use the parameters in our IEEE TPAMI submission
+rng('default');
+rng(1);
 Net.NumStages = 2;
 Net.PatchSize = 15;
 Net.NumFilters = [8 8];  %[8 8]
-Net.HistBlockSize = [14 14]; % if Net.HistBlockSize < 1, stands for block size is the ratio of the image size,[14 14]
+Net.HistBlockSize = [7 7]; % if Net.HistBlockSize < 1, stands for block size is the ratio of the image size,[14 14]
 Net.BlkOverLapRatio = 0.5;
 Net.Poolingsize = 2;
 Net.PoolingStride = 2;    % if stride == poolingsize, then no pad
@@ -75,7 +75,7 @@ Net.ResolutionFlag = 3; % 0 stands for standard net type; 1 stands for Laplacian
 Net.ResolutionNum = 2; % stands for how many scale used
 Net.WPCA = 0; % stands for the dimensions that use wpca recuded, 0 stands for no wpca
 Net.SigPara = [1 1 1;1 1 1];
-Net.MaxNumIter = 0;
+Net.MaxNumIter = idx;
 Net.LRate = 0.1;
 
 if Net.ResolutionFlag == 0
@@ -137,6 +137,12 @@ end
 tic;
 models = train(TrnLabels, ftrain, '-s 1 -B 1'); % we use linear SVM classifier (C = 1), calling libsvm library
 LinearSVM_TrnTime = toc;
+[xLabel_est, accuracy, decision_values] = predict(TrnLabels,...
+        sparse(ftrain), models, '-q'); % label predictoin by libsvm
+nCorrRecog = xLabel_est == TrnLabels;
+Accuracy = sum(nCorrRecog)/TrnSize; 
+ErRate = 1 - Accuracy;
+ErRateTrain(idx+1) = ErRate;
 % clear ftrain; 
 
 %% Net Feature Extraction and Testing 
@@ -198,5 +204,8 @@ ErRate = 1 - Accuracy;
 fprintf('\n ===== Results of Net, followed by a linear SVM classifier =====');
 fprintf('\n     Net training time: %.2f secs.', Net_TrnTime);
 fprintf('\n     Linear SVM training time: %.2f secs.', LinearSVM_TrnTime);
+fprintf('\n     Train error rate: %.2f%%', 100*ErRateTrain(idx+1));
 fprintf('\n     Testing error rate: %.2f%%', 100*ErRate);
 fprintf('\n     Average testing time %.2f secs per test sample. \n\n',Averaged_TimeperTest);
+ErRateTest(idx+1) = ErRate;
+end

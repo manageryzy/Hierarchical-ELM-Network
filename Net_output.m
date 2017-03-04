@@ -14,7 +14,7 @@ function [OutImg, OutImgIdx] = Net_output(InImg, InImgIdx, PatchSize, NumFilters
 
 ImgZ = size(InImg,3);
 mag = (PatchSize-1)/2;
-OutImg = zeros(size(InImg,1),size(InImg,2),NumFilters*ImgZ);
+OutImg = zeros(size(InImg,1) * size(InImg,2) * NumFilters*ImgZ,1);
 cnt = 1;
 V = gpuArray(V);
 M = gpuArray(M);
@@ -56,8 +56,12 @@ for i = 1:512:ImgZ
 %         OutImg{cnt} = sigscale * reshape(V(:,j)'*im,ImgX,ImgY);  % convolution output
         %OutImg{cnt} = reshape( 1 ./ (1 + exp(-sigscale * V(:,j)'*im)),ImgX,ImgY);  % convolution output
         % Sined square root normalization
-
-        OutImg(:,:,cnt:NumFilters:cnt+(s+1)*NumFilters-1) = reshape(gather(t),ImgX,ImgY,s+1);
+        t= gather(t);
+        for k=1:s
+            startIdx = (cnt+(k-1)*NumFilters-1)*ImgX*ImgY+1;
+            data = t(:,:,k);
+            OutImg(startIdx:startIdx+ImgX*ImgY-1) = data(:);
+        end
         cnt = cnt + 1;
         clear t;
     end
@@ -65,4 +69,5 @@ for i = 1:512:ImgZ
     
     %            fprintf(1,'Layered Max Val %f Min Val %f\n',max(max(OutImg{:})),min(min(OutImg(:))));
 end
+OutImg = reshape(OutImg,size(InImg,1) , size(InImg,2) , NumFilters*ImgZ);
 OutImgIdx = kron(InImgIdx,ones(NumFilters,1));
