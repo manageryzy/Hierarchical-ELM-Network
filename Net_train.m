@@ -37,6 +37,7 @@ V = cell(Net.NumStages,1); M = cell(Net.NumStages,1); P = cell(Net.NumStages,1);
 ImgIdx = (1:NumImg)';
 clear InImg;
 
+filternum = 1;
 for stage = 1:Net.NumStages
     display(['Computing Net filter bank and its outputs at stage ' num2str(stage) '...'])
     
@@ -49,6 +50,8 @@ for stage = 1:Net.NumStages
              [g{stage,1}, BlkIdx] = HashingHist(Net,ImgIdx,OutImg);
         end
     end
+    
+    filternum = filternum * Net.NumFilters(stage);
 end
 
 if IdtExt == 1 % enable feature extraction
@@ -56,18 +59,49 @@ if IdtExt == 1 % enable feature extraction
     
     f = cell(NumImg,1); % compute the Net training feature one by one
     
+    OutImgIndex = ImgIdx==1;
+    OutImgIndex = ones(sum(OutImgIndex),1);
+    
+    i = 1;
+    work = zeros(ceil(NumImg/512),2);
+    data = cell(ceil(NumImg/512),1);
+    for idx = 1:512:NumImg
+        s = 511;
+        if NumImg - idx < 512
+            s = NumImg - idx;
+        end
+        work(i,1) = idx;
+        work(i,2) = s;
+        data{i,1} = OutImg(:,:,(idx-1)*filternum/Net.NumFilters(end)+1:(idx+s)*filternum/Net.NumFilters(end));
+        i=i+1;
+    end
+    clear OutImg;
+    
+    PatchSize = Net.PatchSize;
+    NumFilters = Net.NumFilters(end);
+    Whitten = Net.Whitten;
+    SignSqrtNorm = Net.SignSqrtNorm;
+    SigPara = Net.SigPara(Net.NumStages,2);
+    Vend = V{end};
+    Mend = M{end};
+    Pend = P{end};
+    for idx = 1:size(work,1)
+        [OutImg_i, ~] = Net_output(data{idx}, OutImgIndex,...
+            PatchSize, NumFilters, Vend, Mend, Pend, Whitten, SignSqrtNorm, SigPara);  % compute the last Net outputs of image "idx"
+        
+        for i = 0:work(idx,2)
+            [f{work(idx,1)+i}, ~] = HashingHist(Net,ones(filternum,1),OutImg_i(:,:,filternum*(i)+1:filternum*(i+1))); 
+        end
+    end
+    
+    
+    
     for idx = 1:NumImg
         if 0==mod(idx,1000); display(['Extracting Net feasture of the ' num2str(idx) 'th training sample...']); end
-        OutImgIndex = ImgIdx==idx; % select feature maps corresponding to image "idx" (outputs of the-last-but-one Net filter bank)
         
-        [OutImg_i, ImgIdx_i] = Net_output(OutImg(:,:,OutImgIndex), ones(sum(OutImgIndex),1),...
-            Net.PatchSize, Net.NumFilters(end), V{end}, M{end}, P{end}, Net.Whitten, Net.SignSqrtNorm, Net.SigPara(Net.NumStages,2));  % compute the last Net outputs of image "idx"
-        
-        [f{idx}, BlkIdx] = HashingHist(Net,ImgIdx_i,OutImg_i); % compute the feature of image "idx"
         if Net.NumStages ~= 1
             f{idx} = [f{idx} ; g{1,1}(:,idx)];
         end
-%         OutImg(OutImgIndex) = cell(sum(OutImgIndex),1);
     end
     f = [f{:}];
     

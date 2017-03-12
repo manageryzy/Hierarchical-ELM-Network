@@ -3,10 +3,10 @@ addpath('./Utils');
 addpath('./Liblinear/matlab');
 addpath('./common');
 % TrnSize = 12000; 
-TrnSize = 1000; 
+TrnSize = 50000; 
 ImgSize = 28; 
 ImgFormat = 'gray'; %'color' or 'gray'
-
+gpuDevice()
 %% Loading data from MNIST Basic (10000 training, 2000 validation, 50000 testing) 
 % load('F:\Data\MNISTdata\mnist_basic');
 % load('F:\Data\MNISTdata\mnist_train'); 

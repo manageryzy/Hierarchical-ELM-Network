@@ -12,7 +12,7 @@ function [V, M, P] = Net_FilterBank(InImg, PatchSize, NumFilters, Whitten, Sigpa
 
 % to efficiently cope with the large training samples, we randomly subsample 100000 training subset to learn Net filter banks
 ImgZ = size(InImg,3);
-MaxSamples = 10000;
+MaxSamples = 50000;
 NumRSamples = min(ImgZ, MaxSamples);
 RandIdx = randperm(ImgZ);
 RandIdx = RandIdx(1:NumRSamples);
